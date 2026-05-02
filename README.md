@@ -1,130 +1,70 @@
-# service-template
+# lasso-filebeat
 
-_Status: starter template repo_
+`lasso-filebeat` packages Filebeat as a Service Lasso managed log shipper.
 
-`service-template` is the canonical starting point for new Service Lasso service repos.
+Filebeat is an app-owned observability sidecar. It is disabled by default because the consuming app owns the log paths, output destination, credentials, and retention policy.
 
-Use this repo when you want to create a new service repo that already has:
-- the expected service repo layout
-- a starter `service.json`
-- a starter `services/` inventory example for app/reference repos that embed Service Lasso
-- starter packaging scripts
-- starter verify scripts and harness contract shape
-- starter docs for service contract, packaging, and validation
-- starter CI scaffolding
+## Service Contract
 
-## Use this template
+- Service ID: `filebeat`
+- Upstream version: `8.14.2`
+- Default HTTP metrics port: `5066`
+- Default dependency: `openobserve`
+- Default healthcheck: `GET http://127.0.0.1:${SERVICE_PORT}/`
+- Default start command: `filebeat -c runtime/filebeat.yml -e`
+- Manual setup command: `filebeat setup -e`
+- First package platforms: Windows x64, Linux x64, macOS arm64
 
-Recommended flow:
+## OpenObserve Output
 
-1. Create a new repo from this GitHub template.
-2. Rename the sample service files/content for the real service.
-3. Replace the sample runtime payload with the real service payload.
-4. Update `service.json`, `verify/service-harness.json`, and the docs for the new service.
-5. Run the local package + test flow.
-6. Wire the repo into the real released `service-lasso-harness` binary once that integration path is enabled.
+The default `service.json` writes a Filebeat config that sends events through the Elasticsearch-compatible OpenObserve endpoint:
 
-## Quick start
-
-### Local package
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\package.ps1
+```yaml
+output.elasticsearch:
+  hosts: ['${FILEBEAT_OUTPUT_HOST}']
+  path: '${FILEBEAT_OUTPUT_PATH}'
+  index: '${FILEBEAT_OUTPUT_INDEX}'
+  username: '${FILEBEAT_OUTPUT_USERNAME}'
+  password: '${FILEBEAT_OUTPUT_PASSWORD}'
 ```
 
-### Local tests
+When `openobserve` is present in the same consuming app, Service Lasso resolves `FILEBEAT_OUTPUT_HOST` from `OPENOBSERVE_URL`. Override the env values in the consuming app's `services/filebeat/service.json` if logs should ship somewhere else.
 
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\test.ps1
+## Release Artifacts
+
+Pushes to `main` create a GitHub release named with the Service Lasso version pattern:
+
+```text
+yyyy.m.d-<shortsha>
 ```
 
-## Start here for deeper design context
+The release contains:
 
-Read in this order if you need the underlying design/spec context:
+- `lasso-filebeat-8.14.2-win32.zip`
+- `lasso-filebeat-8.14.2-linux.tar.gz`
+- `lasso-filebeat-8.14.2-darwin.tar.gz`
+- `service.json`
+- `SHA256SUMS.txt`
 
-1. `docs/openspec-drafts/SPEC-SERVICE-TEMPLATE-REPO.md`
-2. `docs/openspec-drafts/OPENSPEC-TRACKER.md`
-3. `docs/service-contract.md`
-4. `docs/service-json-reference.md`
-5. `docs/packaging.md`
-6. `docs/validation.md`
-7. `docs/reference/adjacent/SPEC-SERVICE-LASSO-HARNESS.md`
+## Local Validation
 
-## What is here
+```powershell
+npm test
+```
 
-### OpenSpec drafts
-- `docs/openspec-drafts/SPEC-SERVICE-TEMPLATE-REPO.md`
-- `docs/openspec-drafts/OPENSPEC-TRACKER.md`
+The verifier downloads the upstream Filebeat release asset for the current platform, repackages it, validates the manifest/config, starts Filebeat with a temporary log input, checks the HTTP metrics endpoint, and stops the process.
 
-### Supporting reference/planning docs
-- `docs/service-contract.md`
-- `docs/service-json-reference.md`
-- `docs/packaging.md`
-- `docs/validation.md`
-- `docs/reference/SERVICE-TEMPLATE-REPO.md`
-- `docs/reference/SERVICE-STRUCTURE-REVIEW.md`
-- `docs/reference/PROPOSED-CODEBASE-STRUCTURE.md`
-- `docs/reference/DECISION-CONTEXT.md`
-- `docs/reference/shared-runtime/QUESTION-LIST-AND-CODE-VALIDATION.md`
-- `docs/reference/shared-runtime/ARCHITECTURE-DECISIONS.md`
-- `docs/reference/shared-runtime/SERVICE-MANAGER-BEHAVIOR.md`
-- `docs/reference/adjacent/SPEC-SERVICE-LASSO-HARNESS.md`
-- `docs/reference/EXAMPLE-REPO-TREE.md`
-- `docs/reference/EXAMPLE-service.json`
-- `docs/reference/EXAMPLE-service-harness.json`
-- `docs/reference/EXAMPLE-verify.ps1`
-- `docs/reference/EXAMPLE-verify.sh`
+## Consumer Notes
 
-## Purpose
+- Keep `FILEBEAT_LOG_GLOB` app-specific. The repo default points to `logs/*.log` under the Filebeat service root.
+- Keep local development credentials out of production usage.
+- Run the manual `setup-dashboards` step only when the configured output supports Filebeat setup assets.
+- Remove or change `depend_on: ["openobserve"]` if shipping to an external Elasticsearch-compatible endpoint.
 
-This repo is the canonical starting point for Service Lasso service repos.
+## Sources
 
-Its role is to define:
-- one-service-per-repo expectations
-- service repo layout
-- service author documentation expectations
-- sample service expectations
-- packaging/release expectations
-- validation-harness integration expectations
-
-## Current status
-
-This repo is usable now as a starter template.
-
-It currently includes:
-- actual starter repo files (`service.json`, `verify/`, `scripts/`, `runtime/`, `config/`, `.github/workflows/`)
-- a tracked example `services/` inventory for downstream app/reference repos
-- a packaged first-pass sample artifact at `dist/echo-service-win32.zip`
-- a starter multi-OS GitHub Actions workflow that packages release archives and runs basic tests
-- starter harness-contract files and thin verify wrappers
-- supporting reference/spec docs for deeper design work
-
-Important current validation note:
-- the pipeline now downloads and invokes the released `service-lasso-harness` binary in CI
-- it still keeps the starter local package/test flow alongside harness verification
-- the current harness version is pinned in workflow config and can be advanced intentionally over time
-
-Important current manifest note:
-- the bounded first-pass core runtime now expects service release/install metadata to live directly in `service.json`
-- the current template example uses a bounded `artifact.kind`, `artifact.source`, and `artifact.platforms` shape to show that direction explicitly
-- bundled app artifacts mean the app package step has already acquired service archives into `services/<service-id>/.state/artifacts/<tag>/<assetName>` so first run can install without downloading those archives
-
-## Baseline app inventory rule
-
-This repo still models the canonical one-service-per-repo contract through the root `service.json`.
-
-In addition, it now carries a tracked example `services/` inventory to show what app/reference repos should own when they embed Service Lasso.
-
-Current baseline inventory:
-- `services/echo-service/service.json`
-- `services/@serviceadmin/service.json`
-- `services/@node/service.json`
-- `services/@localcert/service.json`
-- `services/@nginx/service.json`
-- `services/@traefik/service.json`
-
-Important rule:
-- app/reference repos should own the exact `services/` manifests for the services they intend to manage
-- if an app repo includes `@serviceadmin`, it should also include the manifests needed to satisfy Service Admin's declared service dependencies
-- core Service Lasso services use the `@` prefix: `@node`, `@localcert`, `@nginx`, `@traefik`, and `@serviceadmin`; `echo-service` stays unprefixed because it is the sample/test managed service
-- environment settings like `VITE_SERVICE_LASSO_API_BASE_URL` still belong in app/runtime config, not as extra service manifests
+- Donor source path: `C:\projects\typerefinery-ai\typerefinery\services\filebeat`
+- Donor start command: `./filebeat -c filebeat.yml -e`
+- Donor setup command: `./filebeat setup -e`
+- OpenObserve Filebeat docs: https://openobserve.ai/docs/ingestion/logs/filebeat/
+- Elastic Filebeat Elasticsearch output docs: https://www.elastic.co/guide/en/beats/filebeat/8.19/elasticsearch-output.html
