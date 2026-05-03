@@ -63,8 +63,5 @@ The verifier downloads the upstream Filebeat release asset for the current platf
 
 ## Sources
 
-- Donor source path: `C:\projects\typerefinery-ai\typerefinery\services\filebeat`
-- Donor start command: `./filebeat -c filebeat.yml -e`
-- Donor setup command: `./filebeat setup -e`
 - OpenObserve Filebeat docs: https://openobserve.ai/docs/ingestion/logs/filebeat/
 - Elastic Filebeat Elasticsearch output docs: https://www.elastic.co/guide/en/beats/filebeat/8.19/elasticsearch-output.html
