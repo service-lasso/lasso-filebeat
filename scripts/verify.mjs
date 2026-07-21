@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,6 +62,50 @@ function renderConfig(template, replacements) {
   return Object.entries(replacements).reduce((content, [key, value]) => content.replaceAll(`\${${key}}`, value), template);
 }
 
+function assertCanonicalHealthchecks(manifest, label) {
+  if (Object.hasOwn(manifest, "healthcheck")) {
+    throw new Error(`${label} uses singular healthcheck.`);
+  }
+
+  if (!Object.hasOwn(manifest, "healthchecks")) {
+    return;
+  }
+
+  if (!Array.isArray(manifest.healthchecks) || manifest.healthchecks.length === 0) {
+    throw new Error(`${label} healthchecks must be a non-empty array when declared.`);
+  }
+
+  const ids = new Set();
+  for (const healthcheck of manifest.healthchecks) {
+    if (!healthcheck?.id || typeof healthcheck.id !== "string") {
+      throw new Error(`${label} healthchecks entries must have stable string ids.`);
+    }
+    if (ids.has(healthcheck.id)) {
+      throw new Error(`${label} healthchecks contains duplicate id ${healthcheck.id}.`);
+    }
+    ids.add(healthcheck.id);
+  }
+}
+
+async function readJson(file) {
+  return JSON.parse(await readFile(file, "utf8"));
+}
+
+async function listCheckedInServiceManifests() {
+  const manifests = [path.join(repoRoot, "service.json")];
+  const servicesRoot = path.join(repoRoot, "services");
+  const entries = await readdir(servicesRoot, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    manifests.push(path.join(servicesRoot, entry.name, "service.json"));
+  }
+
+  return manifests;
+}
+
 async function waitForHttp(url, timeoutMs = 30_000) {
   const startedAt = Date.now();
   let lastError = null;
@@ -98,17 +142,23 @@ async function stopChild(child) {
   ]);
 }
 
-const serviceManifest = JSON.parse(await readFile(path.join(repoRoot, "service.json"), "utf8"));
+for (const manifestPath of await listCheckedInServiceManifests()) {
+  assertCanonicalHealthchecks(await readJson(manifestPath), path.relative(repoRoot, manifestPath));
+}
+
+const serviceManifest = await readJson(path.join(repoRoot, "service.json"));
 if (serviceManifest.id !== "filebeat" || serviceManifest.version !== filebeatVersion) {
   throw new Error(`Unexpected service manifest identity: ${JSON.stringify({ id: serviceManifest.id, version: serviceManifest.version })}`);
 }
 
+const filebeatHealthcheck = serviceManifest.healthchecks?.[0];
 if (
-  serviceManifest.healthcheck?.type !== "http" ||
-  serviceManifest.healthcheck.url !== "http://${FILEBEAT_HTTP_HOST}:${FILEBEAT_HTTP_PORT}/" ||
+  filebeatHealthcheck?.id !== "filebeat-http-ready" ||
+  filebeatHealthcheck.type !== "http" ||
+  filebeatHealthcheck.url !== "http://${FILEBEAT_HTTP_HOST}:${FILEBEAT_HTTP_PORT}/" ||
   serviceManifest.ports?.service !== 5066
 ) {
-  throw new Error(`Filebeat service.json health/ports drifted: ${JSON.stringify(serviceManifest.healthcheck)}`);
+  throw new Error(`Filebeat service.json health/ports drifted: ${JSON.stringify(serviceManifest.healthchecks)}`);
 }
 
 for (const key of ["FILEBEAT_HTTP_URL", "FILEBEAT_HTTP_PORT", "FILEBEAT_LOG_GLOB"]) {
