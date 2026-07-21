@@ -10,7 +10,7 @@ Filebeat is an app-owned observability sidecar. It is disabled by default becaus
 - Upstream version: `8.14.2`
 - Default HTTP metrics port: `5066`
 - Default dependency: `openobserve`
-- Default healthcheck: `GET http://127.0.0.1:${SERVICE_PORT}/`
+- Default healthchecks[]: `filebeat-http-ready` GET `http://127.0.0.1:${SERVICE_PORT}/`
 - Default start command: `filebeat -c runtime/filebeat.yml -e`
 - Manual setup command: `filebeat setup -e`
 - First package platforms: Windows x64, Linux x64, macOS arm64

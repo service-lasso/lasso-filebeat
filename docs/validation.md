@@ -9,9 +9,9 @@ Current first-pass direction:
 - consumer repos should call the shared released `service-lasso-harness` binary
 - the template provides the example contract and thin wrappers
 - local and CI usage should share the same harness contract path
-- default health model is `process`; other health models should come from explicit service config
+- default health model is `process`; other health models should come from explicit `healthchecks[]` service config
 
-Ref/code-backed donor healthcheck types observed:
+Ref/code-backed donor healthchecks types observed:
 - `http`
 - `tcp`
 - `file`

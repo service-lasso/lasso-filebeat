@@ -13,7 +13,7 @@ It is meant to make the template usable without forcing service authors to recon
 - `actions`
 - `execconfig`
 - env / dependencies / ports
-- healthcheck direction
+- healthchecks direction
 - examples
 - what is currently canonical vs still illustrative
 
@@ -23,7 +23,7 @@ The current template direction is:
 - **default health model = `process`**
 - other health models are used only when explicitly declared by service config
 
-Ref/code-backed donor healthcheck types observed:
+Ref/code-backed donor healthchecks types observed:
 - `http`
 - `tcp`
 - `file`
@@ -100,9 +100,12 @@ The current sample in this repo is:
       "ECHO_MESSAGE": "hello from service-template"
     },
     "depend_on": [],
-    "healthcheck": {
-      "type": "process"
-    }
+    "healthchecks": [
+      {
+        "id": "process-ready",
+        "type": "process"
+      }
+    ]
   }
 }
 ```
@@ -258,7 +261,7 @@ Current direction:
 - use this for services that require another service/runtime/provider first
 - keep empty for the minimal sample
 
-## Healthcheck
+## Healthchecks
 
 ### Default rule
 Current rule:
@@ -266,15 +269,18 @@ Current rule:
 
 Example:
 ```json
-"healthcheck": {
-  "type": "process"
-}
+"healthchecks": [
+  {
+    "id": "process-ready",
+    "type": "process"
+  }
+]
 ```
 
 This is the right default for a simple sample service.
 
-### Observed donor healthcheck types
-The donor runtime/code shows these healthcheck types:
+### Observed donor healthchecks types
+The donor runtime/code shows these healthchecks types:
 - `http`
 - `tcp`
 - `file`
@@ -289,9 +295,12 @@ Use when:
 
 Sample:
 ```json
-"healthcheck": {
-  "type": "process"
-}
+"healthchecks": [
+  {
+    "id": "process-ready",
+    "type": "process"
+  }
+]
 ```
 
 ### `http` healthcheck
@@ -300,11 +309,14 @@ Use when:
 
 Sample:
 ```json
-"healthcheck": {
-  "type": "http",
-  "url": "http://localhost:${SERVICE_PORT}/health",
-  "expected_status": 200
-}
+"healthchecks": [
+  {
+    "id": "http-ready",
+    "type": "http",
+    "url": "http://localhost:${SERVICE_PORT}/health",
+    "expected_status": 200
+  }
+]
 ```
 
 ### `tcp` healthcheck
@@ -313,9 +325,12 @@ Use when:
 
 Sample:
 ```json
-"healthcheck": {
-  "type": "tcp"
-}
+"healthchecks": [
+  {
+    "id": "tcp-ready",
+    "type": "tcp"
+  }
+]
 ```
 
 Current donor behavior suggests this relies on the configured service host/port.
@@ -326,10 +341,13 @@ Use when:
 
 Sample:
 ```json
-"healthcheck": {
-  "type": "file",
-  "file": "${SERVICE_HOME}/.state/runtime/ready.txt"
-}
+"healthchecks": [
+  {
+    "id": "ready-file",
+    "type": "file",
+    "file": "${SERVICE_HOME}/.state/runtime/ready.txt"
+  }
+]
 ```
 
 ### `variable` healthcheck
@@ -338,10 +356,13 @@ Use when:
 
 Sample:
 ```json
-"healthcheck": {
-  "type": "variable",
-  "variable": "${SERVICE_URL}"
-}
+"healthchecks": [
+  {
+    "id": "service-url-ready",
+    "type": "variable",
+    "variable": "SERVICE_URL"
+  }
+]
 ```
 
 ## Other important manifest aspects
@@ -381,6 +402,7 @@ The minimal sample does not use this yet.
 - explicit `env`
 - explicit `depend_on`
 - default health model of `process`
+- canonical declared health config uses top-level `healthchecks[]` with stable unique `id` values
 - explicit override to other health models when needed
 
 ### Still illustrative / not fully locked yet

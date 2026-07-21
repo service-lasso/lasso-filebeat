@@ -103,13 +103,16 @@
       }
     }
   },
-  "healthcheck": {
-    "type": "http",
-    "url": "http://${FILEBEAT_HTTP_HOST}:${FILEBEAT_HTTP_PORT}/",
-    "expected_status": 200,
-    "retries": 80,
-    "interval": 250
-  },
+  "healthchecks": [
+    {
+      "id": "filebeat-http-ready",
+      "type": "http",
+      "url": "http://${FILEBEAT_HTTP_HOST}:${FILEBEAT_HTTP_PORT}/",
+      "expected_status": 200,
+      "retries": 80,
+      "interval": 250
+    }
+  ],
   "updates": {
     "enabled": true,
     "mode": "notify",
