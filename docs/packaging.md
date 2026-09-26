@@ -1,13 +1,10 @@
 # Packaging
 
-Reference packaging scripts:
-- `scripts/package.ps1`
-- `scripts/package.sh`
+## Canonical reader guidance
 
-Current first-pass direction:
-- package the minimal sample service into a release artifact under `dist/`
-- include `service.json`, runtime payload, and config
-- use the produced artifact as the thing later consumed by the shared harness
+Start with [central Service Lasso guidance](https://github.com/service-lasso/service-lasso/blob/develop/docs/service-authoring/05-validate-release.md). This page retains Filebeat-owned service and packaging contracts. Filebeat remains opt-in; metrics readiness does not prove log ingestion, and output credentials stay outside shared evidence. Migration: [Filebeat #6](https://github.com/service-lasso/lasso-filebeat/issues/6), [Core #1419](https://github.com/service-lasso/service-lasso/issues/1419), reviewed source `5427dd1b5b7ca55b565aae5edf7c6b61bfd2b284`.
+
+The authoritative packager is `scripts/package.mjs`, invoked by `npm run package`. It downloads the selected Elastic Filebeat distribution (or uses `FILEBEAT_VENDOR_ARCHIVE`), copies that distribution into the payload and adds `SERVICE-LASSO-PACKAGE.json` with source/platform metadata. It creates a versioned archive under `dist/`: Windows x64 ZIP, Linux x64 tar.gz or macOS arm64 tar.gz. It does not add `service.json` to the archive; the release manifest remains a separate artifact. Local packaging does not publish a release.
 
 ## App Artifact Modes
 
