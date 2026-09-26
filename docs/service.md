@@ -2,7 +2,7 @@
 
 ## Canonical reader guidance
 
-Start with [central Service Lasso guidance](https://github.com/service-lasso/service-lasso/blob/develop/docs/components/app-service-tasks.md). This page retains Filebeat-owned service and packaging contracts. Filebeat remains opt-in; metrics readiness does not prove log ingestion, and output credentials stay outside shared evidence. Migration: [Filebeat #6](https://github.com/service-lasso/lasso-filebeat/issues/6), [Core #1419](https://github.com/service-lasso/service-lasso/issues/1419), reviewed source `5427dd1b5b7ca55b565aae5edf7c6b61bfd2b284`.
+Start with [docs/components/app-service-tasks.md](https://github.com/service-lasso/service-lasso/blob/develop/docs/components/app-service-tasks.md). This page retains Filebeat-owned service and packaging contracts. Filebeat remains opt-in; metrics readiness does not prove log ingestion, and output credentials stay outside shared evidence. Migration: [Filebeat #6](https://github.com/service-lasso/lasso-filebeat/issues/6), [Core #1419](https://github.com/service-lasso/service-lasso/issues/1419), reviewed source `5427dd1b5b7ca55b565aae5edf7c6b61bfd2b284`.
 
 `lasso-filebeat` provides Filebeat 8.14.2 as a release-backed Service Lasso service.
 
